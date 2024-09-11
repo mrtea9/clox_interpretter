@@ -23,20 +23,22 @@ static Entry* findEntry(Entry* entries, int capacity, ObjString* key){
 	uint32_t index = key->hash % capacity;
 	Entry* tombstone = NULL;
 	
-	for(;;){
+	for (;;) {
 		Entry* entry = &entries[index];
-		if(entry->key == NULL) {
-			if(IS_NIL(entry->value)){
+		if (entry->key == NULL) {
+			if (IS_NIL(entry->value)) {
 				// Emptry entry
 				return tombstone != NULL ? tombstone : entry;
 			} else {
 				// We found a tombstone
-				if(tombstone == NULL) tombstone = entry;
+				if (tombstone == NULL) tombstone = entry;
 			}
-		} else if(entry->key == key) {
+		} else if (entry->key == key) {
 			// We found the key
 			return entry;
 		}
+		
+		index = (index + 1) % capacity;
 	}
 }
 
@@ -125,5 +127,22 @@ ObjString* tableFindString(Table* table, const char* chars, int length, uint32_t
 		}
 		
 		index = (index + 1) % table->capacity;
+	}
+}
+
+void tableRemoveWhite(Table* table) {
+	for (int i = 0; i < table->capacity; i++) {
+		Entry* entry = &table->entries[i];
+		if (entry->key != NULL && !entry->key->obj.isMarked) {
+			tableDelete(table, entry->key);
+		}
+	}
+}
+
+void markTable(Table* table){
+	for(int i = 0; i < table->capacity; i++){
+		Entry* entry = &table->entries[i];
+		markObject((Obj*)entry->key);
+		markValue(entry->value);
 	}
 }

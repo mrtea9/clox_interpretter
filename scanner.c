@@ -18,8 +18,10 @@ void initScanner(const char* source){
 	scanner.line = 1;
 }
 
-static bool isAlpha(char c){
-	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
+static bool isAlpha(char c) {
+  return (c >= 'a' && c <= 'z') ||
+         (c >= 'A' && c <= 'Z') ||
+          c == '_';
 }
 
 static bool isDigit(char c){
@@ -47,7 +49,7 @@ static char peekNext(){
 static bool match(char expected){
 	if(isAtEnd()) return false;
 	if(*scanner.current != expected) return false;
-	scanner.current;
+	scanner.current++;
 	return true;
 }
 
@@ -83,9 +85,8 @@ static void skipWhitespace(){
 				advance();
 				break;
 			case '/':
-				if(peekNext() == '/'){
-					// A comment goes until the end of line
-					while(peek() != '\n' && !isAtEnd()) advance;
+				if (peekNext() == '/') {
+					while (peek() != '\n' && !isAtEnd()) advance();
 				} else {
 					return;
 				}
@@ -97,8 +98,9 @@ static void skipWhitespace(){
 }
 
 static TokenType checkKeyword(int start, int length, const char* rest, TokenType type){
-	if(scanner.current - scanner.start == start + length && memcmp(scanner.start + start, rest, length) == 0){
-		return type;
+	if (scanner.current - scanner.start == start + length &&
+    memcmp(scanner.start + start, rest, length) == 0) {
+	return type;
 	}
 	
 	return TOKEN_IDENTIFIER;
@@ -145,14 +147,14 @@ static Token identifier(){
 }
 
 static Token number(){
-	while(isDigit(peek())) advance();
+	while (isDigit(peek())) advance();
 	
 	// Look for a fractional part.
-	if(peek() == '.' && isDigit(peekNext())){
+	if (peek() == '.' && isDigit(peekNext())){
 		// Consume the ".".
 		advance();
 		
-		while(isDigit(peek())) advance();
+		while (isDigit(peek())) advance();
 	}
 	
 	return makeToken(TOKEN_NUMBER);
