@@ -74,7 +74,7 @@ static Chunk* currentChunk() {
 	return &current->function->chunk;
 }
 
-static void errorAt(Token* token, const char* message){
+static void errorAt(Token* token, const char* message) {
 	if(parser.panicMode) return;
 	parser.panicMode = true;
 	fprintf(stderr, "[line %d] Error", token->line);
@@ -91,26 +91,26 @@ static void errorAt(Token* token, const char* message){
 	parser.hadError = true;
 }
 
-static void error(const char* message){
+static void error(const char* message) {
 	errorAt(&parser.previous, message);
 }
 
-static void errorAtCurrent(const char* message){
+static void errorAtCurrent(const char* message) {
 	errorAt(&parser.current, message);
 }
 
-static void advance(){
+static void advance() {
 	parser.previous = parser.current;
 	
-	for(;;){
+	for (;;) {
 		parser.current = scanToken();
-		if(parser.current.type != TOKEN_ERROR) break;
+		if (parser.current.type != TOKEN_ERROR) break;
 		
 		errorAtCurrent(parser.current.start);
 	}
 }
 
-static void consume(TokenType type, const char* message){
+static void consume(TokenType type, const char* message) {
 	if(parser.current.type == type) {
 		advance();
 		return;
@@ -174,12 +174,12 @@ static void emitConstant(Value value){
 	emitBytes(OP_CONSTANT, makeConstant(value));
 }
 
-static void patchJump(int offset){
+static void patchJump(int offset) {
 	// -2 to adjust for the bytecode for the jump offset itself
 	int jump = currentChunk()->count - offset - 2;
 	
-	if(jump > UINT16_MAX){
-		error("To much code to jump over");
+	if (jump > UINT16_MAX) {
+		error("Too much code to jump over.");
 	}
 	
 	currentChunk()->code[offset] = (jump >> 8) & 0xff;
@@ -600,16 +600,31 @@ static void function(FunctionType type) {
 	}
 }
 
+static void method() {
+	consume(TOKEN_IDENTIFIER, "Expect method name.");
+	uint8_t constant = identifierConstant(&parser.previous);
+	
+	FunctionType type = TYPE_FUNCTION;
+	function(type);
+	emitBytes(OP_METHOD, constant);
+}
+
 static void classDeclaration() {
 	consume(TOKEN_IDENTIFIER, "Expect class name.");
+	Token className = parser.previous;
 	uint8_t nameConstant = identifierConstant(&parser.previous);
 	declareVariable();
 	
 	emitBytes(OP_CLASS, nameConstant);
 	defineVariable(nameConstant);
 	
+	namedVariable(className, false);
 	consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
+	while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+		method();
+	}
 	consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
+	emitByte(OP_POP);
 }
 
 static void funDeclaration() {
